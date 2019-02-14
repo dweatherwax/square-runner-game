@@ -56,25 +56,25 @@ def main():
         "PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP",
         "P                                          P",
         "PPPPPPPPPPPRR                              P",
-        "P                                     P    P",
+        "P                      R   R          P    P",
         "P                  PPPPPPPPPPPP            P",
+        "P            R                             P",
         "P                                          P",
-        "P                                          P",
-        "P                                          P",
-        "P      PPPPPP           PP                 P",
+        "P                R                         P",
+        "P      PPPPPP           PPR                P",
         "P                                          P",
         "P                            PPPP     P    P",
         "P                                          P",
         "P                                          P",
-        "P             PPP                          P",
+        "P             PPP            RR            P",
         "P                                          P",
         "P                                          P",
         "P                                          P",
         "P   PPPPPPPPPPP        PPPP                P",
         "P                                     P    P",
-        "P                 PPPPPPPPPPP              P",
+        "P        R        PPPPPPPPPPP              P",
         "P                                          P",
-        "P                                          P",
+        "P           R          R        RR         P",
         "P                                          P",
         "P                                          P",
         "PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP",]
@@ -132,7 +132,7 @@ class Player(Entity):
         self.speed = 8
         self.jump_strength = 10
 
-        img = pygame.image.load("mooky-mute.png")
+        img = pygame.image.load("mooky-cropped.png")
         img = pygame.transform.scale(img, (TILE_SIZE, TILE_SIZE))
         self.image.blit(img, (0, 0))
 

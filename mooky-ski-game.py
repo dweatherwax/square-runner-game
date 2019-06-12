@@ -5,7 +5,7 @@ from pygame import *
 
 SCREEN_SIZE = pygame.Rect((0, 0, 800, 640))
 TILE_SIZE = 64 
-GRAVITY = pygame.Vector2((0, 0.1))
+GRAVITY = pygame.Vector2((0, 2))
 
 class CameraAwareLayeredUpdates(pygame.sprite.LayeredUpdates):
     def __init__(self, target, world_size):
@@ -18,12 +18,14 @@ class CameraAwareLayeredUpdates(pygame.sprite.LayeredUpdates):
 
     def update(self, *args):
         super().update(*args)
-        if self.target:
-            x = -self.target.rect.center[0] + SCREEN_SIZE.width/2
-            y = -self.target.rect.center[1] + SCREEN_SIZE.height/2
-            self.cam += (pygame.Vector2((x, y)) - self.cam) * 0.05
-            self.cam.x = max(-(self.world_size.width-SCREEN_SIZE.width), min(0, self.cam.x))
-            self.cam.y = max(-(self.world_size.height-SCREEN_SIZE.height), min(0, self.cam.y))
+        #if self.target:
+        #    x = -self.target.rect.center[0] + SCREEN_SIZE.width/2
+        #    y = -self.target.rect.center[1] + SCREEN_SIZE.height/2
+        #    self.cam += (pygame.Vector2((x, y)) - self.cam) * 0.05
+        #    self.cam.x = max(-(self.world_size.width-SCREEN_SIZE.width), min(0, self.cam.x))
+        #    self.cam.y = max(-(self.world_size.height-SCREEN_SIZE.height), min(0, self.cam.y))
+        self.cam.x -= 2
+    
 
     def draw(self, surface):
         spritedict = self.spritedict
@@ -53,31 +55,16 @@ def main():
     timer = pygame.time.Clock()
 
     level = [
-        "PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP",
-        "P                                          P",
-        "PPPPPPPPPPPRR                              P",
-        "P                      R   R          P    P",
-        "P                  PPPPPPPPPPPP            P",
-        "P            R                             P",
-        "P                                          P",
-        "P                R                         P",
-        "P      PPPPPP           PPR                P",
-        "P                                          P",
-        "P                            PPPP     P    P",
-        "P                                          P",
-        "P                                          P",
-        "P             PPP            RR            P",
-        "P                                          P",
-        "P                                          P",
-        "P                                          P",
-        "P   PPPPPPPPPPP        PPPP                P",
-        "P                                     P    P",
-        "P        R        PPPPPPPPPPP              P",
-        "P                                          P",
-        "P           R          R        RR         P",
-        "P                                          P",
-        "P                                          P",
-        "PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP",]
+        "PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP",
+        "P                                                                                   P",
+        "P                                                                                   P",
+        "P                                                                                   P",
+        "P                                                                                   P",
+        "P                                                                                   P",
+        "P               O              RR                                                   P",
+        "P           O                                                                       P",
+        "P      OO                                                                           P",
+        "PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP",]
 
 
     platforms = pygame.sprite.Group()
@@ -96,6 +83,8 @@ def main():
                 ExitBlock((x, y), platforms, entities)
             if col == "R":
                 Rock((x, y), platforms, entities)
+            if col == "O":
+                OrangeBlock((x,y), platforms, entities)
 
             x += TILE_SIZE
         y += TILE_SIZE
@@ -114,7 +103,7 @@ def main():
         screen.fill((255, 255, 255))
         entities.draw(screen)
         pygame.display.update()
-        timer.tick(60)
+        timer.tick(50)
 
 class Entity(pygame.sprite.Sprite):
     def __init__(self, color, pos, *groups):
@@ -129,12 +118,14 @@ class Player(Entity):
         self.vel = pygame.Vector2((0, 0))
         self.onGround = False
         self.platforms = platforms
-        self.speed = 8
-        self.jump_strength = 10
+        self.speed = 15
+        self.jump_strength = 16
 
-        img = pygame.image.load("mooky-cropped.png")
-        img = pygame.transform.scale(img, (TILE_SIZE, TILE_SIZE))
-        self.image.blit(img, (0, 0))
+        pygame.draw.rect(self.image, (0, 0, 255), (0, 0, 20, 20))
+
+        #img = pygame.image.load("mooky-cropped.png")
+        #img = pygame.transform.scale(img, (TILE_SIZE, TILE_SIZE))
+        #self.image.blit(img, (0, 0))
 
 
     def update(self):
@@ -148,8 +139,8 @@ class Player(Entity):
         if up:
             # only jump if on the ground
             if self.onGround: self.vel.y = -self.jump_strength
-        if down:
-            self.vel.y = self.jump_strength
+        #if down:
+        #    self.vel.y = self.jump_strength
         if left:
             self.vel.x = -self.speed
         if right:
@@ -160,8 +151,8 @@ class Player(Entity):
             # only accelerate with gravity if in the air
             self.vel += GRAVITY
             # max falling speed
-            if self.vel.y > 100: self.vel.y = 100
-        print(self.vel.y)
+            if self.vel.y > 200: self.vel.y = 200
+        #print(self.vel.y)
         if not(left or right):
             self.vel.x = 0
         # increment in x direction
@@ -191,6 +182,11 @@ class Player(Entity):
                 if yvel < 0:
                     self.rect.top = p.rect.bottom
 
+class OrangeBlock(Entity):
+    def __init__(self, pos, *groups):
+        super().__init__(Color('#FFA500'), pos, *groups)
+
+            
 class Platform(Entity):
     def __init__(self, pos, *groups):
         super().__init__(Color("#DDDDDD"), pos, *groups)

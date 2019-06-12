@@ -1,2 +1,2 @@
-# mooky-ski-game
-A Mooky Ski Platform game
+# square-runner-game
+Eli's new video game

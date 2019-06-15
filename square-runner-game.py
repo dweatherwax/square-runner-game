@@ -24,7 +24,7 @@ class CameraAwareLayeredUpdates(pygame.sprite.LayeredUpdates):
         #    self.cam += (pygame.Vector2((x, y)) - self.cam) * 0.05
         #    self.cam.x = max(-(self.world_size.width-SCREEN_SIZE.width), min(0, self.cam.x))
         #    self.cam.y = max(-(self.world_size.height-SCREEN_SIZE.height), min(0, self.cam.y))
-        self.cam.x -= 2
+        self.cam.x -= 2.5
     
 
     def draw(self, surface):
@@ -48,6 +48,7 @@ class CameraAwareLayeredUpdates(pygame.sprite.LayeredUpdates):
             spritedict[spr] = newrect
         return dirty            
 
+
 def main():
     pygame.init()
     screen = pygame.display.set_mode(SCREEN_SIZE.size)
@@ -55,16 +56,16 @@ def main():
     timer = pygame.time.Clock()
 
     level = [
-        "PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP",
-        "P                                                                                   P",
-        "P                                                                                   P",
-        "P                                                                                   P",
-        "P                                                                                   P",
-        "P                                                                                   P",
-        "P               O              RR                                                   P",
-        "P           O                                                                       P",
-        "P      OO                                                                           P",
-        "PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP",]
+        "OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO",
+        "O                                                                                   O",
+        "O                                                                                   O",
+        "O                                                                                   O",
+        "O                      O                                                            O",
+        "O                  O                                                                O",
+        "O              O           OOOO                                                     O",
+        "O          O                                                                        O",
+        "O      OO                                                                           O",
+        "OOOOOOOOOO                          OOOO   OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO",]
 
 
     platforms = pygame.sprite.Group()
@@ -91,7 +92,6 @@ def main():
         x = 0
 
     while 1:
-
         for e in pygame.event.get():
             if e.type == QUIT: 
                 return
@@ -103,7 +103,13 @@ def main():
         screen.fill((255, 255, 255))
         entities.draw(screen)
         pygame.display.update()
+
+        if ((player.rect.y > level_height) or (abs(entities.cam.x) > player.rect.x)):
+            print("you are dead")
+
+
         timer.tick(50)
+
 
 class Entity(pygame.sprite.Sprite):
     def __init__(self, color, pos, *groups):

@@ -13,6 +13,12 @@ GAMESTATE_LEVEL_PLAY = 2
 GAMESTATE_LEVEL_COMPLETE = 3
 GAMESTATE_GAMEOVER = 4
 
+
+# todo -- make these non global in future
+level_height = 0
+camX = 0
+
+
 class CameraAwareLayeredUpdates(pygame.sprite.LayeredUpdates):
     def __init__(self, target, world_size):
         super().__init__()
@@ -23,16 +29,12 @@ class CameraAwareLayeredUpdates(pygame.sprite.LayeredUpdates):
             self.add(target)
 
     def update(self, *args):
+        global camX
         super().update(*args)
-        #if self.target:
-        #    x = -self.target.rect.center[0] + SCREEN_SIZE.width/2
-        #    y = -self.target.rect.center[1] + SCREEN_SIZE.height/2
-        #    self.cam += (pygame.Vector2((x, y)) - self.cam) * 0.05
-        #    self.cam.x = max(-(self.world_size.width-SCREEN_SIZE.width), min(0, self.cam.x))
-        #    self.cam.y = max(-(self.world_size.height-SCREEN_SIZE.height), min(0, self.cam.y))
         self.cam.x -= 2.5
-    
 
+        camX = self.cam.x
+    
     def draw(self, surface):
         spritedict = self.spritedict
         surface_blit = surface.blit
@@ -59,27 +61,35 @@ def text_objects(text, font):
     textSurface = font.render(text, True, (0, 0, 0))
     return textSurface, textSurface.get_rect()
 
-def draw_text(screen, text):
+def draw_text(screen, text, centerXY):
     largeText = pygame.font.Font('freesansbold.ttf', 40)
     TextSurf, TextRect = text_objects(text, largeText)
-    TextRect.center = ((800/2), (640/2))
+    TextRect.center = centerXY
     screen.blit(TextSurf, TextRect)
 
 def drawLevelCompleteScreen(screen):
     text = "Level Complete, you won!"
-    draw_text(screen, text)
+    draw_text(screen, text, ((800/2), (640/2)))
+
 
 def drawLevelFailedScreen(screen):
     text = "You died, sorry..."
-    draw_text(screen, text)
+    draw_text(screen, text, ((800/2), 100))
+
+    text = "Press R to retry"
+    draw_text(screen, text, ((800/2), 400))
 
 
+def drawIntroScreen(screen):
+    text = "Welcome to Square Runner!"
+    draw_text(screen, text, ((800/2), 100))
 
-def main():
-    pygame.init()
-    screen = pygame.display.set_mode(SCREEN_SIZE.size)
-    pygame.display.set_caption("Use arrows to move!")
-    timer = pygame.time.Clock()
+    text = "Press P to play"
+    draw_text(screen, text, ((800/2), 400))
+
+
+def initLevel(screen):
+    global level_height
 
     level = [
         "OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO",
@@ -88,10 +98,11 @@ def main():
         "O                                                                                   O",
         "O                      O                                                            O",
         "O                  O                                                                O",
-        "O              O           OOOO                                                     O",
-        "O          O                                                                        O",
-        "O      OO                                               E                            O",
-        "OOOOOOOOOO                          OOOO   OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO",]
+        "O              R           OOOO                                                     O",
+        "O          R                                                                        O",
+        "O      RT                                               E                            O",
+        "OOOOOOOOOO                          OOOO   OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO",
+     ]
 
 
     platforms = pygame.sprite.Group()
@@ -104,8 +115,8 @@ def main():
     x = y = 0
     for row in level:
         for col in row:
-            if col == "P":
-                Platform((x, y), platforms, entities)
+            if col == "T":
+                Tree((x, y), platforms, entities)
             if col == "E":
                 ExitBlock((x, y), platforms, entities)
             if col == "R":
@@ -117,6 +128,16 @@ def main():
         y += TILE_SIZE
         x = 0
 
+    return entities
+
+
+def main():
+    pygame.init()
+    screen = pygame.display.set_mode(SCREEN_SIZE.size)
+    pygame.display.set_caption("Use arrows to move!")
+    timer = pygame.time.Clock()
+
+    entities = None
     state = GAMESTATE_INTRO
 
     while 1:
@@ -126,6 +147,10 @@ def main():
                 return
             if e.type == KEYDOWN and e.key == K_ESCAPE:
                 return
+            if e.type == KEYDOWN and e.key == K_p and state == GAMESTATE_INTRO:
+                state = GAMESTATE_LEVEL_INIT
+            if e.type == KEYDOWN and e.key == K_r and state == GAMESTATE_GAMEOVER:
+                state = GAMESTATE_LEVEL_INIT
             if e.type == USEREVENT:
                 print("got a user event!\n\n")
                 print(e)
@@ -141,36 +166,26 @@ def main():
 
         # State machine
         if state == GAMESTATE_INTRO:
-            pass
-            state = GAMESTATE_LEVEL_INIT
+            screen.fill((255, 255, 255))
+            drawIntroScreen(screen)
         elif state == GAMESTATE_LEVEL_INIT:
+            entities = initLevel(screen)
             state = GAMESTATE_LEVEL_PLAY
         elif state == GAMESTATE_LEVEL_PLAY:
             entities.update()
             screen.fill((255, 255, 255))
             entities.draw(screen)
-            pygame.display.update()
 
-            if ((player.rect.y > level_height) or (abs(entities.cam.x) > player.rect.x)):
-                # post a 'you have died' event
-                e = pygame.event.Event(pygame.USEREVENT, dead=True)
-                pygame.event.post(e)
         elif state == GAMESTATE_LEVEL_COMPLETE:
             screen.fill((255, 255, 255))
-
             drawLevelCompleteScreen(screen)
 
-
-            pygame.display.update()
-
         elif state == GAMESTATE_GAMEOVER:
-
             screen.fill((255, 255, 255))
             drawLevelFailedScreen(screen)
 
-            pygame.display.update()
-
-
+        
+        pygame.display.update()
         timer.tick(50)
 
 
@@ -191,10 +206,6 @@ class Player(Entity):
         self.jump_strength = 16
 
         pygame.draw.rect(self.image, (0, 0, 255), (0, 0, 20, 20))
-
-        #img = pygame.image.load("mooky-cropped.png")
-        #img = pygame.transform.scale(img, (TILE_SIZE, TILE_SIZE))
-        #self.image.blit(img, (0, 0))
 
 
     def update(self):
@@ -221,6 +232,7 @@ class Player(Entity):
             self.vel += GRAVITY
             # max falling speed
             if self.vel.y > 200: self.vel.y = 200
+
         #print(self.vel.y)
         if not(left or right):
             self.vel.x = 0
@@ -234,6 +246,11 @@ class Player(Entity):
         self.onGround = False;
         # do y-axis collisions
         self.collide(0, self.vel.y, self.platforms)
+
+        # see if player died
+        if ((self.rect.y > level_height) or (abs(camX) > self.rect.x)):
+            e = pygame.event.Event(pygame.USEREVENT, dead=True)
+            pygame.event.post(e)
 
     def collide(self, xvel, yvel, platforms):
         for p in platforms:
@@ -257,14 +274,13 @@ class OrangeBlock(Entity):
         super().__init__(Color('#FFA500'), pos, *groups)
 
             
-class Platform(Entity):
+class Tree(Entity):
     def __init__(self, pos, *groups):
         super().__init__(Color("#DDDDDD"), pos, *groups)
 
         img = pygame.image.load("mooky-tree.png")
         img = pygame.transform.scale(img, (TILE_SIZE, TILE_SIZE))
         self.image.blit(img, (0, 0))
-
 
 class Rock(Entity):
     def __init__(self, pos, *groups):

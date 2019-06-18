@@ -7,6 +7,12 @@ SCREEN_SIZE = pygame.Rect((0, 0, 800, 640))
 TILE_SIZE = 64 
 GRAVITY = pygame.Vector2((0, 2))
 
+GAMESTATE_INTRO = 0
+GAMESTATE_LEVEL_INIT = 1
+GAMESTATE_LEVEL_PLAY = 2
+GAMESTATE_LEVEL_COMPLETE = 3
+GAMESTATE_GAMEOVER = 4
+
 class CameraAwareLayeredUpdates(pygame.sprite.LayeredUpdates):
     def __init__(self, target, world_size):
         super().__init__()
@@ -49,6 +55,26 @@ class CameraAwareLayeredUpdates(pygame.sprite.LayeredUpdates):
         return dirty            
 
 
+def text_objects(text, font):
+    textSurface = font.render(text, True, (0, 0, 0))
+    return textSurface, textSurface.get_rect()
+
+def draw_text(screen, text):
+    largeText = pygame.font.Font('freesansbold.ttf', 40)
+    TextSurf, TextRect = text_objects(text, largeText)
+    TextRect.center = ((800/2), (640/2))
+    screen.blit(TextSurf, TextRect)
+
+def drawLevelCompleteScreen(screen):
+    text = "Level Complete, you won!"
+    draw_text(screen, text)
+
+def drawLevelFailedScreen(screen):
+    text = "You died, sorry..."
+    draw_text(screen, text)
+
+
+
 def main():
     pygame.init()
     screen = pygame.display.set_mode(SCREEN_SIZE.size)
@@ -64,7 +90,7 @@ def main():
         "O                  O                                                                O",
         "O              O           OOOO                                                     O",
         "O          O                                                                        O",
-        "O      OO                                                                           O",
+        "O      OO                                               E                            O",
         "OOOOOOOOOO                          OOOO   OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO",]
 
 
@@ -91,21 +117,58 @@ def main():
         y += TILE_SIZE
         x = 0
 
+    state = GAMESTATE_INTRO
+
     while 1:
+        # Process Events
         for e in pygame.event.get():
             if e.type == QUIT: 
                 return
             if e.type == KEYDOWN and e.key == K_ESCAPE:
                 return
+            if e.type == USEREVENT:
+                print("got a user event!\n\n")
+                print(e)
 
-        entities.update()
+                if (hasattr(e, "level_complete") and e.level_complete == True and state == GAMESTATE_LEVEL_PLAY):
+                    print("changing state to level complete")
+                    state = GAMESTATE_LEVEL_COMPLETE
 
-        screen.fill((255, 255, 255))
-        entities.draw(screen)
-        pygame.display.update()
+                if (hasattr(e, "dead") and e.dead == True and state == GAMESTATE_LEVEL_PLAY):
+                    print("changing state to game over")
+                    state = GAMESTATE_GAMEOVER
 
-        if ((player.rect.y > level_height) or (abs(entities.cam.x) > player.rect.x)):
-            print("you are dead")
+
+        # State machine
+        if state == GAMESTATE_INTRO:
+            pass
+            state = GAMESTATE_LEVEL_INIT
+        elif state == GAMESTATE_LEVEL_INIT:
+            state = GAMESTATE_LEVEL_PLAY
+        elif state == GAMESTATE_LEVEL_PLAY:
+            entities.update()
+            screen.fill((255, 255, 255))
+            entities.draw(screen)
+            pygame.display.update()
+
+            if ((player.rect.y > level_height) or (abs(entities.cam.x) > player.rect.x)):
+                # post a 'you have died' event
+                e = pygame.event.Event(pygame.USEREVENT, dead=True)
+                pygame.event.post(e)
+        elif state == GAMESTATE_LEVEL_COMPLETE:
+            screen.fill((255, 255, 255))
+
+            drawLevelCompleteScreen(screen)
+
+
+            pygame.display.update()
+
+        elif state == GAMESTATE_GAMEOVER:
+
+            screen.fill((255, 255, 255))
+            drawLevelFailedScreen(screen)
+
+            pygame.display.update()
 
 
         timer.tick(50)
@@ -176,7 +239,8 @@ class Player(Entity):
         for p in platforms:
             if pygame.sprite.collide_rect(self, p):
                 if isinstance(p, ExitBlock):
-                    pygame.event.post(pygame.event.Event(QUIT))
+                    e = pygame.event.Event(pygame.USEREVENT, level_complete=True)
+                    pygame.event.post(e)
                 if xvel > 0:
                     self.rect.right = p.rect.left
                 if xvel < 0:
@@ -211,9 +275,9 @@ class Rock(Entity):
         self.image.blit(img, (0, 0))
 
 
-class ExitBlock(Platform):
+class ExitBlock(Entity):
     def __init__(self, pos, *groups):
-        super().__init__(Color("#0033FF"), pos, *groups)
+        super().__init__(Color("#FF0000"), pos, *groups)
 
 if __name__ == "__main__":
     main()

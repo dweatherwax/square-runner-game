@@ -17,6 +17,7 @@ GAMESTATE_GAMEOVER = 4
 # todo -- make these non global in future
 level_height = 0
 camX = 0
+player_score = 0
 
 
 class CameraAwareLayeredUpdates(pygame.sprite.LayeredUpdates):
@@ -31,7 +32,7 @@ class CameraAwareLayeredUpdates(pygame.sprite.LayeredUpdates):
     def update(self, *args):
         global camX
         super().update(*args)
-        self.cam.x -= 2.5
+        self.cam.x -= 3.3
 
         camX = self.cam.x
     
@@ -69,7 +70,11 @@ def draw_text(screen, text, centerXY):
 
 def drawLevelCompleteScreen(screen):
     text = "Level Complete, you won!"
+
     draw_text(screen, text, ((800/2), (640/2)))
+
+    text = "Score:  %04d" % player_score
+    draw_text(screen, text, (400, 200))
 
 
 def drawLevelFailedScreen(screen):
@@ -78,6 +83,9 @@ def drawLevelFailedScreen(screen):
 
     text = "Press R to retry"
     draw_text(screen, text, ((800/2), 400))
+
+    text = "Score:  %04d" % player_score
+    draw_text(screen, text, (400, 200))
 
 
 def drawIntroScreen(screen):
@@ -98,10 +106,13 @@ def initLevel(screen):
         "O                                                                                   O",
         "O                      O                                                            O",
         "O                  O                                                                O",
-        "O              R           OOOO                                                     O",
-        "O          R                                                                        O",
-        "O      RT                                               E                            O",
+        "O              O           OOOO                                                     O",
+        "O          O                                                                        O",
+        "O     OO                                               E                            O",
         "OOOOOOOOOO                          OOOO   OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO",
+        "OOOOOOOOOO                          OOOO   OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO",
+        "OOOOOOOOOO                     OO   OOOO   OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO",
+
      ]
 
 
@@ -132,6 +143,8 @@ def initLevel(screen):
 
 
 def main():
+    global player_score
+
     pygame.init()
     screen = pygame.display.set_mode(SCREEN_SIZE.size)
     pygame.display.set_caption("Use arrows to move!")
@@ -170,11 +183,15 @@ def main():
             drawIntroScreen(screen)
         elif state == GAMESTATE_LEVEL_INIT:
             entities = initLevel(screen)
+            player_score = 0
             state = GAMESTATE_LEVEL_PLAY
         elif state == GAMESTATE_LEVEL_PLAY:
             entities.update()
             screen.fill((255, 255, 255))
             entities.draw(screen)
+
+            text = "Score:  %04d" % player_score
+            draw_text(screen, text, (600, 50))
 
         elif state == GAMESTATE_LEVEL_COMPLETE:
             screen.fill((255, 255, 255))
@@ -205,10 +222,13 @@ class Player(Entity):
         self.speed = 15
         self.jump_strength = 16
 
+
         pygame.draw.rect(self.image, (0, 0, 255), (0, 0, 20, 20))
 
 
     def update(self):
+        global player_score
+
         pressed = pygame.key.get_pressed()
         up = pressed[K_UP]
         left = pressed[K_LEFT]
@@ -251,6 +271,8 @@ class Player(Entity):
         if ((self.rect.y > level_height) or (abs(camX) > self.rect.x)):
             e = pygame.event.Event(pygame.USEREVENT, dead=True)
             pygame.event.post(e)
+
+        player_score += 1
 
     def collide(self, xvel, yvel, platforms):
         for p in platforms:

@@ -14,10 +14,16 @@ GAMESTATE_LEVEL_COMPLETE = 3
 GAMESTATE_GAMEOVER = 4
 
 
-# todo -- make these non global in future
-level_height = 0
-camX = 0
-player_score = 0
+class GameData():
+    def __init__(self):
+        self.level_height = 0
+        self.camX = 0
+        self.player_score = 0
+
+    def init(self):
+        self.level_height = 0
+        self.camX = 0
+        self.player_score = 0
 
 
 class CameraAwareLayeredUpdates(pygame.sprite.LayeredUpdates):
@@ -30,11 +36,11 @@ class CameraAwareLayeredUpdates(pygame.sprite.LayeredUpdates):
             self.add(target)
 
     def update(self, *args):
-        global camX
         super().update(*args)
-        self.cam.x -= 3.3
+        self.cam.x -= 4.3
 
-        camX = self.cam.x
+        gameData = args[0]
+        gameData.camX = self.cam.x
     
     def draw(self, surface):
         spritedict = self.spritedict
@@ -68,23 +74,23 @@ def draw_text(screen, text, centerXY):
     TextRect.center = centerXY
     screen.blit(TextSurf, TextRect)
 
-def drawLevelCompleteScreen(screen):
+def drawLevelCompleteScreen(screen, gameData):
     text = "Level Complete, you won!"
 
     draw_text(screen, text, ((800/2), (640/2)))
 
-    text = "Score:  %04d" % player_score
+    text = "Score:  %04d" % gameData.player_score
     draw_text(screen, text, (400, 200))
 
 
-def drawLevelFailedScreen(screen):
+def drawLevelFailedScreen(screen, gameData):
     text = "You died, sorry..."
     draw_text(screen, text, ((800/2), 100))
 
     text = "Press R to retry"
     draw_text(screen, text, ((800/2), 400))
 
-    text = "Score:  %04d" % player_score
+    text = "Score:  %04d" % gameData.player_score
     draw_text(screen, text, (400, 200))
 
 
@@ -96,31 +102,27 @@ def drawIntroScreen(screen):
     draw_text(screen, text, ((800/2), 400))
 
 
-def initLevel(screen):
-    global level_height
+def initLevel(screen, gameData):
 
     level = [
-        "OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO",
-        "O                                                                                   O",
-        "O                                                                                   O",
-        "O                                                                                   O",
-        "O                      O                                                            O",
-        "O                  O                                                                O",
-        "O              O           OOOO                                                     O",
-        "O          O                                                                        O",
-        "O     OO                                               E                            O",
-        "OOOOOOOOOO                          OOOO   OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO",
-        "OOOOOOOOOO                          OOOO   OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO",
-        "OOOOOOOOOO                     OO   OOOO   OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO",
-
+        "OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO",
+        "O                                                                                                                                                 O",
+        "O                                                                                                                          O                      O",
+        "O                                                                      O                                                 O                        O",
+        "O                      O                                             O                                                 O                          O",
+        "O                  O                                               O                       O                         O                            O",
+        "O              O           OOOO                                  O                       O                         O                              O",
+        "O          O                                 O   O             O                       O     O                   O                                O",
+        "O     OO                                   O         O       O                       O           O       O     O                                 EO",     
+        "OOOOOOOOOO                          OOOO                 OO              OOOOOOOOO                   OOO                        OOOOOOOOOOOOOOOOOOO",
      ]
 
 
     platforms = pygame.sprite.Group()
     player = Player(platforms, (TILE_SIZE, TILE_SIZE))
     level_width  = len(level[0])*TILE_SIZE
-    level_height = len(level)*TILE_SIZE
-    entities = CameraAwareLayeredUpdates(player, pygame.Rect(0, 0, level_width, level_height))
+    gameData.level_height = len(level)*TILE_SIZE
+    entities = CameraAwareLayeredUpdates(player, pygame.Rect(0, 0, level_width, gameData.level_height))
 
     # build the level
     x = y = 0
@@ -143,12 +145,12 @@ def initLevel(screen):
 
 
 def main():
-    global player_score
-
     pygame.init()
     screen = pygame.display.set_mode(SCREEN_SIZE.size)
     pygame.display.set_caption("Use arrows to move!")
     timer = pygame.time.Clock()
+
+    gameData = GameData()
 
     entities = None
     state = GAMESTATE_INTRO
@@ -165,9 +167,6 @@ def main():
             if e.type == KEYDOWN and e.key == K_r and state == GAMESTATE_GAMEOVER:
                 state = GAMESTATE_LEVEL_INIT
             if e.type == USEREVENT:
-                print("got a user event!\n\n")
-                print(e)
-
                 if (hasattr(e, "level_complete") and e.level_complete == True and state == GAMESTATE_LEVEL_PLAY):
                     print("changing state to level complete")
                     state = GAMESTATE_LEVEL_COMPLETE
@@ -182,28 +181,27 @@ def main():
             screen.fill((255, 255, 255))
             drawIntroScreen(screen)
         elif state == GAMESTATE_LEVEL_INIT:
-            entities = initLevel(screen)
-            player_score = 0
+            gameData.init()
+            entities = initLevel(screen, gameData)
             state = GAMESTATE_LEVEL_PLAY
         elif state == GAMESTATE_LEVEL_PLAY:
-            entities.update()
+            entities.update(gameData)
             screen.fill((255, 255, 255))
             entities.draw(screen)
 
-            text = "Score:  %04d" % player_score
-            draw_text(screen, text, (600, 50))
-
+            text = "Score:  %04d" % gameData.player_score
+            draw_text(screen, text, (600, 30))
+ 
         elif state == GAMESTATE_LEVEL_COMPLETE:
             screen.fill((255, 255, 255))
-            drawLevelCompleteScreen(screen)
-
+            drawLevelCompleteScreen(screen, gameData)
+ 
         elif state == GAMESTATE_GAMEOVER:
             screen.fill((255, 255, 255))
-            drawLevelFailedScreen(screen)
-
+            drawLevelFailedScreen(screen, gameData)
         
         pygame.display.update()
-        timer.tick(50)
+        timer.tick(400)
 
 
 class Entity(pygame.sprite.Sprite):
@@ -226,9 +224,7 @@ class Player(Entity):
         pygame.draw.rect(self.image, (0, 0, 255), (0, 0, 20, 20))
 
 
-    def update(self):
-        global player_score
-
+    def update(self, gameData):
         pressed = pygame.key.get_pressed()
         up = pressed[K_UP]
         left = pressed[K_LEFT]
@@ -253,7 +249,6 @@ class Player(Entity):
             # max falling speed
             if self.vel.y > 200: self.vel.y = 200
 
-        #print(self.vel.y)
         if not(left or right):
             self.vel.x = 0
         # increment in x direction
@@ -268,11 +263,11 @@ class Player(Entity):
         self.collide(0, self.vel.y, self.platforms)
 
         # see if player died
-        if ((self.rect.y > level_height) or (abs(camX) > self.rect.x)):
+        if ((self.rect.y > gameData.level_height) or (abs(gameData.camX) > self.rect.x)):
             e = pygame.event.Event(pygame.USEREVENT, dead=True)
             pygame.event.post(e)
 
-        player_score += 1
+        gameData.player_score += 1
 
     def collide(self, xvel, yvel, platforms):
         for p in platforms:
